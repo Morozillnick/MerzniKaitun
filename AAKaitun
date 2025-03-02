@@ -1,0 +1,272 @@
+-- Функция для проверки и выполнения покупки
+local function checkAndBuyIfNeeded()
+    -- Получаем путь до UnitFrames
+    local unitFramesParent = game.Players.LocalPlayer.PlayerGui.collection.grid.List.Outer.UnitFrames
+
+    -- Получаем все объекты CollectionUnitFrame в _FX_CACHE
+    local collectionUnitFrames = game.ReplicatedStorage._FX_CACHE:GetChildren()
+
+    -- Переносим все объекты CollectionUnitFrame из _FX_CACHE в UnitFrames
+    for _, frame in ipairs(collectionUnitFrames) do
+        if frame.Name == "CollectionUnitFrame" then
+            frame.Parent = unitFramesParent
+        end
+    end
+
+    -- Подсчитываем количество CollectionUnitFrame в UnitFrames
+    local collectionUnitFrameCount = 0
+    for _, frame in ipairs(unitFramesParent:GetChildren()) do
+        if frame.Name == "CollectionUnitFrame" then
+            collectionUnitFrameCount = collectionUnitFrameCount + 1
+        end
+    end
+
+    -- Если количество CollectionUnitFrame меньше 4, выполняем команду для покупки
+    while collectionUnitFrameCount < 4 do
+        local args = {
+            [1] = "EventClover",
+            [2] = "gems"
+        }
+
+        -- Отправляем запрос на сервер для выполнения покупки
+        game:GetService("ReplicatedStorage").endpoints.client_to_server.buy_from_banner:InvokeServer(unpack(args))
+        wait(2) -- Ждем 2 секунды перед следующей проверкой
+        print("Команда для покупки выполнена.")
+
+        -- Обновляем количество CollectionUnitFrame после выполнения покупки
+        collectionUnitFrameCount = 0
+        for _, frame in ipairs(unitFramesParent:GetChildren()) do
+            if frame.Name == "CollectionUnitFrame" then
+                collectionUnitFrameCount = collectionUnitFrameCount + 1
+                -- Получаем все объекты CollectionUnitFrame в _FX_CACHE
+                local collectionUnitFrames = game.ReplicatedStorage._FX_CACHE:GetChildren()
+
+                -- Переносим все объекты CollectionUnitFrame из _FX_CACHE в UnitFrames
+                for _, frame in ipairs(collectionUnitFrames) do
+                    if frame.Name == "CollectionUnitFrame" then
+                        frame.Parent = unitFramesParent
+                    end
+                end
+            end
+        end
+    end
+
+    -- Выводим итоговый результат
+    print("Количество CollectionUnitFrame: " .. collectionUnitFrameCount .. ". Команда выполнена.")
+end
+
+-- Функция для перемещения объектов и экипировки юнитов
+local function moveAndEquipUnits()
+    -- Получаем все объекты CollectionUnitFrame в _FX_CACHE
+    local collectionUnitFrames = game.ReplicatedStorage._FX_CACHE:GetChildren()
+
+    -- Получаем ссылку на правильный родитель UnitFrames
+    local unitFramesParent = game.Players.LocalPlayer.PlayerGui.collection.grid.List.Outer.UnitFrames
+
+    -- Проходим по всем объектам в _FX_CACHE и переносим их в UnitFrames
+    for _, frame in ipairs(collectionUnitFrames) do
+        -- Проверяем, является ли объект CollectionUnitFrame
+        if frame.Name == "CollectionUnitFrame" then
+            -- Меняем родителя объекта
+            frame.Parent = unitFramesParent
+        end
+    end
+
+    -- Получаем текущего игрока
+    local player = game.Players.LocalPlayer
+
+    -- Проверяем, существует ли контейнер "collection"
+    local collection = player.PlayerGui:FindFirstChild("collection")
+    if not collection then
+        print("Контейнер 'collection' не найден.")
+        return
+    end
+
+    -- Проверяем, существует ли контейнер "grid"
+    local grid = collection:FindFirstChild("grid")
+    if not grid then
+        print("Контейнер 'grid' не найден.")
+        return
+    end
+
+    -- Проверяем, существует ли контейнер "List"
+    local List = grid:FindFirstChild("List")
+    if not List then
+        print("Контейнер 'List' не найден.")
+        return
+    end
+
+    -- Проверяем, существует ли контейнер "Outer"
+    local Outer = List:FindFirstChild("Outer")
+    if not Outer then
+        print("Контейнер 'Outer' не найден.")
+        return
+    end
+
+    -- Проверяем, существует ли контейнер "UnitFrames"
+    local UnitFrames = Outer:FindFirstChild("UnitFrames")
+    if not UnitFrames then
+        print("Контейнер 'UnitFrames' не найден.")
+        return
+    end
+
+    -- Перебираем все дочерние элементы в "UnitFrames"
+    for _, unitFrame in pairs(UnitFrames:GetChildren()) do
+        -- Проверяем, является ли объект "CollectionUnitFrame"
+        if unitFrame.Name == "CollectionUnitFrame" then
+            -- Ищем объект _uuid внутри "CollectionUnitFrame"
+            local uuid = unitFrame:FindFirstChild("_uuid")
+            if uuid then
+                -- Если _uuid найден, передаем его значение в функцию экипировки юнита
+                local args = {
+                    [1] = uuid.Value  -- Подставляем UUID в аргументы
+                }
+
+                -- Отправляем запрос на сервер для экипировки юнита с этим UUID
+                game:GetService("ReplicatedStorage").endpoints.client_to_server.equip_unit:InvokeServer(unpack(args))
+                print("Экипировка юнита с UUID: " .. uuid.Value)
+                wait(1)
+            else
+                -- Если _uuid не найден
+                print("UUID не найден в unitFrame: " .. unitFrame:GetFullName())
+            end
+        end
+    end
+end
+
+-- Функция для присоединения к лобби, блокировки уровня и запуска игры
+local function joinLobbyLockLevelAndStartGame()
+    
+    local argsJoinLobby = {
+        [1] = "_lobbytemplategreen4"
+    }
+    -- Присоединяемся к лобби
+    game:GetService("ReplicatedStorage").endpoints.client_to_server.request_join_lobby:InvokeServer(unpack(argsJoinLobby))
+    wait(2)
+    -- Часть 2 и 3: Перебор уровней и блокировка
+    local argsLockLevel = {
+        [1] = "_lobbytemplategreen4",  -- Лобби
+        [2] = 'namek_level_1',               -- Уровень
+        [3] = true,                    -- Блокировка
+        [4] = 'Normal'               -- Уровень сложности
+    }
+    game:GetService("ReplicatedStorage").endpoints.client_to_server.request_lock_level:InvokeServer(unpack(argsLockLevel))
+    wait(2)
+    -- Часть 4: Запуск игры после блокировки уровня
+    local startGameArgs = {
+        [1] = "_lobbytemplategreen4"  -- Лобби
+    }
+    game:GetService("ReplicatedStorage").endpoints.client_to_server.request_start_game:InvokeServer(unpack(startGameArgs))
+    print("Игра началась.")
+end
+
+local uuidList = {}
+    local spawnPositions = {
+        CFrame.new(-2942.66259765625, 91.80620574951172, -693.0150146484375),
+        CFrame.new(-2944.619140625, 91.80620574951172, -692.9658203125),
+        CFrame.new(-2946.57568359375, 91.80620574951172, -692.9166259765625),
+        CFrame.new(-2948.5322265625, 91.80620574951172, -692.867431640625),
+        CFrame.new(-2942.537841796875, 91.80620574951172, -694.9343872070312),
+        CFrame.new(-2944.494384765625, 91.80620574951172, -694.88519287109375),
+        CFrame.new(-2946.450927734375, 91.80620574951172, -694.8360005341563),
+        CFrame.new(-2948.407470703125, 91.80620574951172, -694.7868041992188)
+    }
+
+    -- Функция для сохранения UUID и вывода их в консоль
+    local function saveUUIDs()
+        local unitFramesParent = game.Players.LocalPlayer.PlayerGui.collection.grid.List.Outer.UnitFrames
+        local collectionUnitFrames = game.ReplicatedStorage._FX_CACHE:GetChildren()
+
+        for _, frame in ipairs(collectionUnitFrames) do
+            if frame.Name == "CollectionUnitFrame" then
+                frame.Parent = unitFramesParent
+            end
+        end
+
+        for _, frame in ipairs(unitFramesParent:GetChildren()) do
+            if frame.Name == "CollectionUnitFrame" then
+                local uuid = frame:FindFirstChild("_uuid")
+                if uuid then
+                    table.insert(uuidList, uuid.Value)
+                    print("Сохранен UUID: " .. uuid.Value)
+                end
+            end
+        end
+        print("UUID сохранены для использования.")
+    end
+
+    -- Функция для выбора случайного UUID и использования его в запросе
+    local function spawnRandomUnit()
+        if #uuidList > 0 then
+            local randomUUID = uuidList[math.random(#uuidList)]
+            local randomPosition = spawnPositions[math.random(#spawnPositions)]
+            local args = {
+                [1] = randomUUID,
+                [2] = randomPosition * CFrame.Angles(0, -0, -0)
+            }
+            game:GetService("ReplicatedStorage").endpoints.client_to_server.spawn_unit:InvokeServer(unpack(args))
+            print("Запрос на спаун юнита с UUID: " .. randomUUID)
+        else
+            print("Нет сохраненных UUID для спауна.")
+        end
+    end
+
+    -- Функция для повторного спауна юнитов каждые 4 секунды
+    local function spawnUnitsLoop()
+        while true do
+            spawnRandomUnit()
+            wait(4)
+        end
+    end
+
+    -- Функция для голосования за пропуск волны
+    local function voteWaveSkipLoop()
+        while true do
+            game:GetService("ReplicatedStorage").endpoints.client_to_server.vote_wave_skip:InvokeServer()
+            wait(1)
+        end
+    end
+
+    -- Функция для улучшения юнитов
+    local function upgradeUnitsLoop()
+        while true do
+            local units = workspace._UNITS:GetChildren()
+            for _, unit in ipairs(units) do
+                local args = { [1] = unit }
+                game:GetService("ReplicatedStorage").endpoints.client_to_server.upgrade_unit_ingame:InvokeServer(unpack(args))
+                print("Юнит " .. unit.Name .. " улучшен.")
+            end
+            wait(1)
+        end
+    end
+
+    local function voteReplay()
+        while true do
+            local args = {
+                [1] = "replay"
+            }
+            game:GetService("ReplicatedStorage").endpoints.client_to_server.set_game_finished_vote:InvokeServer(unpack(args))
+            wait(1) -- Wait for 1 second before voting again (adjust as needed)
+        end
+    end
+    
+    
+
+-- Сам скрипт чит
+wait(20)
+if game.PlaceId == 8304191830 then
+    game:GetService("ReplicatedStorage").endpoints.client_to_server.claim_daily_reward:InvokeServer() -- Забрать ежедневки
+    checkAndBuyIfNeeded()
+    moveAndEquipUnits()
+    game:GetService("ReplicatedStorage").endpoints.client_to_server.claim_battlepass_rewards:InvokeServer() -- БП
+    joinLobbyLockLevelAndStartGame()
+elseif game.PlaceId == 14229839966 then
+    saveUUIDs()  -- Сначала сохраняем UUID
+    game:GetService("ReplicatedStorage").endpoints.client_to_server.vote_start:InvokeServer()
+    -- Запуск всех циклов
+    spawn(spawnUnitsLoop)
+    spawn(voteWaveSkipLoop)
+    wait(30)
+    spawn(upgradeUnitsLoop)
+    spawn(voteReplay)
+end
