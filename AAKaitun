@@ -260,7 +260,7 @@ if game.PlaceId == 8304191830 then
     moveAndEquipUnits()
     game:GetService("ReplicatedStorage").endpoints.client_to_server.claim_battlepass_rewards:InvokeServer() -- БП
     joinLobbyLockLevelAndStartGame()
-elseif game.PlaceId == 14229839966 then
+else
     saveUUIDs()  -- Сначала сохраняем UUID
     game:GetService("ReplicatedStorage").endpoints.client_to_server.vote_start:InvokeServer()
     -- Запуск всех циклов
